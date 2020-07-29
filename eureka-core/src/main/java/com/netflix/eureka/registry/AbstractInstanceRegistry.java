@@ -745,6 +745,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         }
         Applications apps = new Applications();
         apps.setVersion(1L);
+        // 从注册表获取所有服务信息
+        // 底层的map数据结构中，获取所有的服务注册的信息，遍历，封装到一个叫Application的东西里去
+        // 一个Application代表一个服务，里面包含多个服务实例。
         for (Entry<String, Map<String, Lease<InstanceInfo>>> entry : registry.entrySet()) {
             Application app = null;
 

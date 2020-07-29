@@ -89,6 +89,7 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
             configInstance.getStringProperty(namespace + "listAutoScalingGroupsRoleName", "ListAutoScalingGroups");
 
     public DefaultEurekaServerConfig() {
+        // init方法完成eureka-server.properties文件中的配置项的加载
         init();
     }
 
@@ -107,6 +108,9 @@ public class DefaultEurekaServerConfig implements EurekaServerConfig {
         try {
             // ConfigurationManager
             // .loadPropertiesFromResources(eurekaPropsFile);
+            // 先将eureka-server.properties中的配置加载到了一个Properties对象中
+            // 然后将Properties对象中的配置放到ConfigurationManager
+            // 此时ConfigurationManager中就有了所有的配置了
             ConfigurationManager
                     .loadCascadedPropertiesFromResources(eurekaPropsFile);
         } catch (IOException e) {

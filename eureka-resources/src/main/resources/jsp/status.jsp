@@ -47,8 +47,15 @@ String basePath = request.getScheme()+"://"+request.getServerName()+":"+request.
            <tfoot><tr><th>Application</th><th>AMIs</th><th>Availability Zones</th><th>Status</th></tr></tfoot>
            <tbody>
            <%
+
+            <%--
+                在jsp代码中，拿到了EurekaServerContext，所以之前为什么要将这个东西放到一个holder里面去
+                就是随时都要从这个里面去获取一些数据
+            --%>
+
            EurekaServerContext serverContext = (EurekaServerContext) pageContext.getServletContext()
                    .getAttribute(EurekaServerContext.class.getName());
+           然后会从EurekaServerContext获取注册表，
            for(Application app : serverContext.getRegistry().getSortedApplications()) {
                out.print("<tr><td><b>" + app.getName() + "</b></td>");
                Map<String, Integer> amiCounts = new HashMap<String, Integer>();
