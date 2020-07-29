@@ -4,6 +4,7 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://java.sun.com/xml/ns/javaee
 	http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd">
+  <!--  Eureka server 启动的监听器-->
   <listener>
     <listener-class>com.netflix.eureka.EurekaBootStrap</listener-class>
   </listener>
@@ -17,10 +18,10 @@
     <filter-name>requestAuthFilter</filter-name>
     <filter-class>com.netflix.eureka.ServerRequestAuthFilter</filter-class>
   </filter>
-  <filter>
-    <filter-name>rateLimitingFilter</filter-name>
-    <filter-class>com.netflix.eureka.RateLimitingFilter</filter-class>
-  </filter>
+<!--  <filter>-->
+<!--    <filter-name>rateLimitingFilter</filter-name>-->
+<!--    <filter-class>com.netflix.eureka.RateLimitingFilter</filter-class>-->
+<!--  </filter>-->
   <filter>
     <filter-name>gzipEncodingEnforcingFilter</filter-name>
     <filter-class>com.netflix.eureka.GzipEncodingEnforcingFilter</filter-class>
