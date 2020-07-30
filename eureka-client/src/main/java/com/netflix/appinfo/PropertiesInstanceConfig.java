@@ -67,6 +67,7 @@ public abstract class PropertiesInstanceConfig extends AbstractInstanceConfig im
         });
     }
 
+    // new MyDataCenterInstanceConfig() 最后会调用这个构造方法
     public PropertiesInstanceConfig(String namespace, DataCenterInfo info) {
         super(info);
 

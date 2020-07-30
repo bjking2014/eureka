@@ -157,19 +157,24 @@ public class EurekaBootStrap implements ServletContextListener {
         XmlXStream.getInstance().registerConverter(new V1AwareInstanceInfoConverter(), XStream.PRIORITY_VERY_HIGH);
 
         logger.info("Initializing the eureka client...");
-        // DefaultEurekaServerConfig提供获取配置项的方法，是从DynamicPropertyFactory中获取的
-        // 而DynamicPropertyFactory里面的值是从ConfigurationManager来的，包含了所有配置项的值
+        // DefaultEurekaServerConfig 提供获取配置项的方法，是从 DynamicPropertyFactory 中获取的
+        // 而 DynamicPropertyFactory 里面的值是从 ConfigurationManager 来的，包含了所有配置项的值
         logger.info(eurekaServerConfig.getJsonCodecName());
         ServerCodecs serverCodecs = new DefaultServerCodecs(eurekaServerConfig);
 
-        // 第二步，初始化eureka-server内部的一个eureka-client（用来跟其他eureka-server节点进行注册和通信的）
+        // 第二步，初始化 ApplicationInfoManager
         ApplicationInfoManager applicationInfoManager = null;
 
+        // 第三步，初始化 eureka-server 内部的一个 eureka-client（用来跟其他 eureka-server 节点进行注册和通信的）
         if (eurekaClient == null) {
+            // 是否云服务，最后还是基于面向接口的思想返回一个 EurekaInstanceConfig
+            // 通过暴露接口来获取 eureka-client.properties 配置文件的读取
             EurekaInstanceConfig instanceConfig = isCloud(ConfigurationManager.getDeploymentContext())
                     ? new CloudInstanceConfig()
-                    : new MyDataCenterInstanceConfig();
-            
+                    : new MyDataCenterInstanceConfig(); // 调用无参构造
+
+            // get() 是一个用使用构造者模式构造的 InstanceInfo 对象，表示这个注册也是一个服务实例，包含了当前实例的信息
+            // 核心思路是从之前的 EurekaInstanceConfig 获取各种各样的配置信息，完成构建
             applicationInfoManager = new ApplicationInfoManager(
                     instanceConfig, new EurekaConfigBasedInstanceInfoProvider(instanceConfig).get());
             

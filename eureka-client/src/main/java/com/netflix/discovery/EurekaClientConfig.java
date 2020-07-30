@@ -272,7 +272,7 @@ public interface EurekaClientConfig {
     /**
      * Indicates whether or not this instance should register its information
      * with eureka server for discovery by others.
-     *
+     * 是否要向别的注册中心注册自己
      * <p>
      * In some cases, you do not want your instances to be discovered whereas
      * you just want do discover other instances.
@@ -440,8 +440,9 @@ public interface EurekaClientConfig {
 
     /**
      * Indicates whether this client should fetch eureka registry information from eureka server.
-     *
+     * 是否需要注册到别的注册中心
      * @return {@code true} if registry information has to be fetched, {@code false} otherwise.
+     * 单机情况下为false。false表示自己就是注册中心。不需要去检索服务
      */
     boolean shouldFetchRegistry();
 

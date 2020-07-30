@@ -31,6 +31,7 @@ import javax.inject.Singleton;
 public class MyDataCenterInstanceConfig extends PropertiesInstanceConfig implements EurekaInstanceConfig {
 
     public MyDataCenterInstanceConfig() {
+        // 无参构造前先调用父类的构造方法
     }
 
     public MyDataCenterInstanceConfig(String namespace) {
