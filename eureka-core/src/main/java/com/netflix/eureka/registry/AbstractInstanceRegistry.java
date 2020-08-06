@@ -738,6 +738,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         logger.debug("Fetching applications registry with remote regions: {}, Regions argument {}",
                 includeRemoteRegion, Arrays.toString(remoteRegions));
 
+
         if (includeRemoteRegion) {
             GET_ALL_WITH_REMOTE_REGIONS_CACHE_MISS.increment();
         } else {
@@ -793,6 +794,7 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                 }
             }
         }
+        // 设置hashcode
         apps.setAppsHashCode(apps.getReconcileHashCode());
         return apps;
     }
