@@ -50,6 +50,7 @@ import javax.ws.rs.core.Response.Status;
 
 import com.netflix.discovery.shared.transport.jersey.Jersey1DiscoveryClientOptionalArgs;
 import com.netflix.discovery.shared.transport.jersey.Jersey1TransportClientFactories;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -835,6 +836,7 @@ public class DiscoveryClient implements EurekaClient {
     boolean renew() {
         EurekaHttpResponse<InstanceInfo> httpResponse;
         try {
+            // 发送心跳 http://localhost:8080/v2/apps/ServiceA/i-000000-1，走的是put请求
             httpResponse = eurekaTransport.registrationClient.sendHeartBeat(instanceInfo.getAppName(), instanceInfo.getId(), instanceInfo, null);
             logger.debug("{} - Heartbeat status: {}", PREFIX + appPathIdentifier, httpResponse.getStatusCode());
             if (httpResponse.getStatusCode() == 404) {
@@ -938,10 +940,21 @@ public class DiscoveryClient implements EurekaClient {
             // applications
             Applications applications = getApplications();
 
+            // 这样写可读性更好
+            // Boolean shoudDisableDelta = clientConfig.shouldDisableDelta();
+            // Boolean isVipAddress = !Strings.isNullOrEmpty(clientConfig.getRegistryRefreshSingleVipAddress());
+            // Boolean isApplicationEmpty = applications == null;
+            // Boolean isRegisterdAppliationEmpty = applications.getRegisteredApplications().size() == 0;
+            // Boolean isClientVersionSupportedDelta = applications.getVersion() == -1;
+            // if (shoudDisableDelta || isVipAddress || isApplicationEmpty || isRegisterdAppliationEmpty
+            //         || isClientVersionSupportedDelta) {
+            //
+            // }
+
             if (clientConfig.shouldDisableDelta()
                     || (!Strings.isNullOrEmpty(clientConfig.getRegistryRefreshSingleVipAddress()))
-                    || forceFullRegistryFetch
-                    || (applications == null)
+                    || forceFullRegistryFetch // false
+                    || (applications == null) // 增量的时候，因为之前已经抓取过一次，所以本地有数据
                     || (applications.getRegisteredApplications().size() == 0)
                     || (applications.getVersion() == -1)) //Client application does not have latest library supporting delta
             {

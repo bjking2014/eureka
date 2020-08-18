@@ -58,6 +58,7 @@ public class TimedSupervisorTask extends TimerTask {
     public void run() {
         Future future = null;
         try {
+            // 把一个任务放线程池里
             future = executor.submit(task);
             threadPoolLevelGauge.set((long) executor.getActiveCount());
             future.get(timeoutMillis, TimeUnit.MILLISECONDS);  // block until done or timeout
@@ -93,6 +94,7 @@ public class TimedSupervisorTask extends TimerTask {
             }
 
             if (!scheduler.isShutdown()) {
+                // 执行成功后再放线程池里延迟执行
                 scheduler.schedule(this, delay.get(), TimeUnit.MILLISECONDS);
             }
         }

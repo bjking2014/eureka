@@ -194,6 +194,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             read.lock();
             Map<String, Lease<InstanceInfo>> gMap = registry.get(registrant.getAppName());
             REGISTER.increment(isReplication);
+            // 如果说某个服务第一次来注册，很明显，通过AppName是获取不到Map的，是个空
+            // 此时就会创建一个新的Map，放到答的registry map中去
+            // 其实这个registry map就是一个注册表，里面包含了每个服务的每个服务实例的注册信息
             if (gMap == null) {
                 final ConcurrentHashMap<String, Lease<InstanceInfo>> gNewMap = new ConcurrentHashMap<String, Lease<InstanceInfo>>();
                 gMap = registry.putIfAbsent(registrant.getAppName(), gNewMap);
@@ -201,6 +204,8 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
                     gMap = gNewMap;
                 }
             }
+
+            // 通过instanceId 从gmap中获取服务实例对应的租约
             Lease<InstanceInfo> existingLease = gMap.get(registrant.getId());
             // Retain the last dirty timestamp without overwriting it, if there is already a lease
             if (existingLease != null && (existingLease.getHolder() != null)) {
@@ -266,6 +271,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             registrant.setActionType(ActionType.ADDED);
             recentlyChangedQueue.add(new RecentlyChangedItem(lease));
             registrant.setLastUpdatedTimestamp();
+
+            // 抓取注册表的时候，走多级缓存机制
+            // 服务实例信息变化的时候更新缓存
             invalidateCache(registrant.getAppName(), registrant.getVIPAddress(), registrant.getSecureVipAddress());
             logger.info("Registered instance {}/{} with status {} (replication={})",
                     registrant.getAppName(), registrant.getId(), registrant.getStatus(), isReplication);
@@ -342,11 +350,15 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
     /**
      * Marks the given instance of the given app name as renewed, and also marks whether it originated from
      * replication.
-     *
+     * 续约的方法
+     * 一个服务名对应1个小map
+     * 小map一个实例id对应一个租约
      * @see com.netflix.eureka.lease.LeaseManager#renew(java.lang.String, java.lang.String, boolean)
      */
+
     public boolean renew(String appName, String id, boolean isReplication) {
         RENEW.increment(isReplication);
+
         Map<String, Lease<InstanceInfo>> gMap = registry.get(appName);
         Lease<InstanceInfo> leaseToRenew = null;
         if (gMap != null) {
@@ -356,34 +368,50 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
             RENEW_NOT_FOUND.increment(isReplication);
             logger.warn("DS: Registry: lease doesn't exist, registering resource: {} - {}", appName, id);
             return false;
-        } else {
-            InstanceInfo instanceInfo = leaseToRenew.getHolder();
-            if (instanceInfo != null) {
-                // touchASGCache(instanceInfo.getASGName());
-                InstanceStatus overriddenInstanceStatus = this.getOverriddenInstanceStatus(
-                        instanceInfo, leaseToRenew, isReplication);
-                if (overriddenInstanceStatus == InstanceStatus.UNKNOWN) {
-                    logger.info("Instance status UNKNOWN possibly due to deleted override for instance {}"
-                            + "; re-register required", instanceInfo.getId());
-                    RENEW_NOT_FOUND.increment(isReplication);
-                    return false;
-                }
-                if (!instanceInfo.getStatus().equals(overriddenInstanceStatus)) {
-                    Object[] args = {
-                            instanceInfo.getStatus().name(),
-                            instanceInfo.getOverriddenStatus().name(),
-                            instanceInfo.getId()
-                    };
-                    logger.info(
-                            "The instance status {} is different from overridden instance status {} for instance {}. "
-                                    + "Hence setting the status to overridden status", args);
-                    instanceInfo.setStatusWithoutDirty(overriddenInstanceStatus);
-                }
-            }
-            renewsLastMin.increment();
-            leaseToRenew.renew();
-            return true;
         }
+
+        InstanceInfo instanceInfo = leaseToRenew.getHolder();
+        if (instanceInfo == null) {
+            logger.warn(".......");
+            return false;
+        }
+
+        if (!validateInstanceStatus(instanceInfo, leaseToRenew, isReplication)) {
+            logger.warn(",......,");
+            return false;
+        }
+
+        // 统计
+        renewsLastMin.increment();
+        // 进行续约，非常简单，在lease对象中更新一下 lastUpdateTimestamp 这个时间戳
+        leaseToRenew.renew();
+        return true;
+    }
+
+    // 抽出来的方法
+    private Boolean validateInstanceStatus(InstanceInfo instanceInfo,
+                                           Lease<InstanceInfo> leaseToRenew,
+                                           Boolean isReplication) {
+        InstanceStatus overriddenInstanceStatus = this.getOverriddenInstanceStatus(
+                instanceInfo, leaseToRenew, isReplication);
+        if (overriddenInstanceStatus == InstanceStatus.UNKNOWN) {
+            logger.info("Instance status UNKNOWN possibly due to deleted override for instance {}"
+                    + "; re-register required", instanceInfo.getId());
+            RENEW_NOT_FOUND.increment(isReplication);
+            return false;
+        }
+        if (!instanceInfo.getStatus().equals(overriddenInstanceStatus)) {
+            Object[] args = {
+                    instanceInfo.getStatus().name(),
+                    instanceInfo.getOverriddenStatus().name(),
+                    instanceInfo.getId()
+            };
+            logger.info(
+                    "The instance status {} is different from overridden instance status {} for instance {}. "
+                            + "Hence setting the status to overridden status", args);
+            instanceInfo.setStatusWithoutDirty(overriddenInstanceStatus);
+        }
+        return true;
     }
 
     /**
@@ -963,6 +991,9 @@ public abstract class AbstractInstanceRegistry implements InstanceRegistry {
         Map<String, Application> applicationInstancesMap = new HashMap<String, Application>();
         try {
             write.lock();
+            // recentlyChangedQueue 代表最近有变更的服务实例
+            // registry注册的时候会有定时调度的任务，默认30秒一次
+            // 拿到所有变更记录， 最近3分钟的变更
             Iterator<RecentlyChangedItem> iter = this.recentlyChangedQueue.iterator();
             logger.debug("The number of elements in the delta queue is :" + this.recentlyChangedQueue.size());
             while (iter.hasNext()) {
